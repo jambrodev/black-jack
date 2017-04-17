@@ -24,6 +24,7 @@ class Player(object):
     # Set the starting score
     score = 0
     hand = []
+    stand = False
 
     def __init__(self, bankroll, name):
         self.bankroll = bankroll
@@ -41,6 +42,9 @@ class Player(object):
     def add_score(self, points):
         Player.score += points
 
+    def sub_score(self, points):
+        Player.score -= points
+
     def new_hand(self):
         Player.score = 0
         Player.hand = []
@@ -49,8 +53,10 @@ class Player(object):
 class Dealer(object):
 
     # Set the starting score
+    game_on = False
     score = 0
     hand = []
+    stand = False
 
     def __init__(self, deck, name):
         self.deck = deck
@@ -62,6 +68,9 @@ class Dealer(object):
 
     def add_score(self, points):
         Dealer.score += points
+
+    def sub_score(self, points):
+        Dealer.score -= points
 
     def new_hand(self):
         Dealer.score = 0
@@ -82,36 +91,72 @@ def calc_score(player_object):
 def print_hand(player_object):
     hand = ''
     for card in player_object.hand:
-        hand = hand + ', ' + card
-    print player_object.name + ' hand is ' + hand + ' with a score of: ' + str(player_object.score)
+        hand = hand + card + ', '
+    print player_object.name + ' hand is ' + hand + 'with a score of: ' + str(player_object.score)
+
+
+def has_ace(player_object):
+    num_aces = 0
+    for card in player_object.hand:
+        if card in ['C-A', 'D-A', 'S-A', 'H-A']:
+            num_aces += 1
+    return num_aces
+
+
+def new_game(player_object, dealer_object):
+    print "Welcome to Black Jack!"
+    print ""
+    player_object.hand = dealer_object.deal()
+    calc_score(player_object)
+    print_hand(player_object)
+    dealer_object.hand = dealer_object.deal()
+    calc_score(dealer_object)
+    print_hand(dealer_object)
+    dealer_object.game_on = True
+
+
+def hit_me(player_object, dealer_object):
+    player_object.hand.append(dealer_object.draw_card())
+    calc_score(player_object)
+    print_hand(player_object)
 
 dealer = Dealer(deck=fullDeck, name="Dealer")
 player = Player(bankroll=1000, name="Player")
 
-print "Welcome to Black Jack!"
-print ""
-player.hand = dealer.deal()
-calc_score(player)
-print_hand(player)
-
-dealer.hand = dealer.deal()
-calc_score(dealer)
-print_hand(dealer)
 
 while True:
 
+    if not dealer.game_on:
+        new_game(player, dealer)
 
-    while player.score <= 21:
-        player_move = raw_input("Would you like to hit or stand? ")
+    while dealer.game_on:
 
-        if player_move.lower() == 'hit':
-            player.hand.append(dealer.draw_card())
-            calc_score(player)
-            print_hand(player)
-        elif player_move.lower() == 'stand':
-            pass
-        else:
-            player_move = raw_input("Sorry, would you like to hit or stand? ")
+        if player.score <= 21:
+            player_move = raw_input("Would you like to hit or stand? ").lower()
 
+            if player_move == 'hit' or player_move == 'h':
+                hit_me(player, dealer)
 
-    break
+                print_hand(player)
+
+                if player.score > 21 and has_ace(player) == 0:
+                    dealer.game_on = False
+                    print "Sorry, you have lost the game with a score of over 21."
+                    break
+                elif player.score > 21 and has_ace(player) > 0:
+                    player.sub_score(10 * has_ace(player))
+
+            else:
+                pass
+
+        if dealer.score < 17:
+            hit_me(dealer, dealer)
+
+            print_hand(dealer)
+
+            if dealer.score > 21 and has_ace(dealer) == 0:
+                dealer.game_on = False
+                print "Sorry, you have lost the game with a score of over 21."
+                break
+            elif dealer.score > 21 and has_ace(dealer) > 0:
+                dealer.sub_score(10 * has_ace(dealer))
